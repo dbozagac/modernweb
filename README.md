@@ -21,4 +21,4 @@ Uygulama `http://localhost:3000` adresinde çalışır.
   - `yöntem1`: Chip/Pill listesi
   - `yöntem2`: Mikro tablo görünümü
   - `yöntem3`: Mini bar/spark görünümü
-- Kullanıcı sağ paneldeki combobox ile yöntem seçince görünüm anlık güncellenir.
+- Kullanıcı sağ paneldeki combobox ile yöntem seçince görünüm anlık güncellenir (varsayılan seçim: `yöntem1`).
