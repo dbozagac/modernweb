@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emitter Dashboard</title>
+    <style>
+      :root { font-family: Inter, system-ui, sans-serif; color: #e8ecff; background: #0f172a; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: radial-gradient(circle at top, #1e293b, #0f172a 45%); }
+      .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+      .header h1 { margin: 0 0 6px; font-size: 28px; }
+      .header p { margin: 0; color: #bfdbfe; }
+
+      .split-layout { margin-top: 18px; display: flex; gap: 16px; min-height: 76vh; }
+      .panel { background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 14px; }
+      .left-panel, .right-panel { flex: 1 1 50%; }
+      .panel-title { margin: 0 0 12px; font-size: 18px; color: #93c5fd; letter-spacing: 0.2px; }
+      .method-select-wrap { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #bfdbfe; }
+      .method-select-wrap select { background: #0b1220; color: #e8ecff; border: 1px solid #334155; border-radius: 8px; padding: 6px 8px; }
+
+      .card-list { display: flex; flex-direction: column; gap: 12px; max-height: calc(76vh - 56px); overflow-y: auto; padding-right: 4px; }
+      .card { background: #111b34; border: 1px solid #334155; border-radius: 12px; padding: 12px; cursor: pointer; box-shadow: 0 8px 24px rgba(2, 8, 23, 0.25); }
+      .card:hover { border-color: #60a5fa; }
+      .card.active { border-color: #60a5fa; background: #172554; }
+      .card h3 { margin: 0 0 10px; font-size: 15px; color: #dbeafe; }
+      .card-line { font-size: 13px; color: #dbeafe; margin: 4px 0; }
+
+      .details-table { width: 100%; border-collapse: collapse; background: #0b1220; border-radius: 10px; overflow: hidden; }
+      .details-table th, .details-table td { border-bottom: 1px solid #1f2d45; padding: 11px; text-align: left; vertical-align: top; }
+      .details-table th { width: 38%; color: #93c5fd; font-weight: 600; background: #101a31; }
+      .placeholder { color: #bfdbfe; background: #0b1220; border: 1px dashed #334155; border-radius: 10px; padding: 18px; }
+
+      .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip { font-size: 12px; background: #1e3a8a; border: 1px solid #3b82f6; color: #dbeafe; border-radius: 999px; padding: 4px 8px; }
+
+      .micro-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .micro-table th, .micro-table td { border: 1px solid #22314f; padding: 4px 6px; text-align: center; }
+      .micro-table th { color: #93c5fd; }
+
+      .spark-list { display: flex; align-items: flex-end; gap: 4px; min-height: 56px; }
+      .spark-bar { width: 10px; background: linear-gradient(180deg, #60a5fa, #2563eb); border-radius: 4px 4px 0 0; position: relative; }
+      .spark-bar span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #93c5fd; white-space: nowrap; }
+
+      @media (max-width: 980px) {
+        .split-layout { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Emitter İzleme Paneli</h1>
+        <p>Sol tarafta emitter list (card view), sağ tarafta seçilen card için emitter details gösterilir.</p>
+      </div>
+
+      <div class="split-layout">
+        <section class="panel left-panel">
+          <h2 class="panel-title">Emitter List</h2>
+          <div id="card-list" class="card-list"></div>
+        </section>
+
+        <section class="panel right-panel">
+          <h2 class="panel-title">Emitter Details</h2>
+          <div class="method-select-wrap">
+            <label for="view-method">PRI/PW Gösterimi:</label>
+            <select id="view-method">
+              <option value="yontem1">yöntem1</option>
+              <option value="yontem2">yöntem2</option>
+              <option value="yontem3">yöntem3</option>
+            </select>
+          </div>
+          <div id="details-root" class="placeholder">Detayları görmek için soldan bir emitter seçin.</div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const cardListEl = document.getElementById('card-list');
+      const detailsRootEl = document.getElementById('details-root');
+      const methodSelectEl = document.getElementById('view-method');
+
+      let selectedEmitterId = null;
+      let emittersData = [];
+
+      function renderMethod(values, unit, method) {
+        if (method === 'yontem1') {
+          return `<div class="chip-list">${values.map((v) => `<span class="chip">${v} ${unit}</span>`).join('')}</div>`;
+        }
+
+        if (method === 'yontem2') {
+          return `
+            <table class="micro-table">
+              <thead><tr>${values.map((_, i) => `<th>#${i + 1}</th>`).join('')}</tr></thead>
+              <tbody><tr>${values.map((v) => `<td>${v} ${unit}</td>`).join('')}</tr></tbody>
+            </table>
+          `;
+        }
+
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+        return `
+          <div class="spark-list">
+            ${values
+              .map((v) => {
+                const height = 16 + ((v - min) / range) * 48;
+                return `<div class="spark-bar" style="height:${height}px"><span>${v}</span></div>`;
+              })
+              .join('')}
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:#bfdbfe;">Min: ${min} ${unit} | Max: ${max} ${unit}</div>
+        `;
+      }
+
+      function renderDetails(emitter) {
+        const method = methodSelectEl.value;
+        detailsRootEl.className = '';
+        detailsRootEl.innerHTML = `
+          <table class="details-table">
+            <tbody>
+              <tr><th>ID</th><td>${emitter.id}</td></tr>
+              <tr><th>Name</th><td>${emitter.name}</td></tr>
+              <tr><th>Min Frequency</th><td>${emitter.minFreq} MHz</td></tr>
+              <tr><th>Max Frequency</th><td>${emitter.maxFreq} MHz</td></tr>
+              <tr><th>Center Frequency</th><td>${emitter.centerFreq} MHz</td></tr>
+              <tr><th>Frequency Type</th><td>${emitter.frequencyType}</td></tr>
+              <tr><th>PRI Values</th><td>${renderMethod(emitter.priValues, 'µs', method)}</td></tr>
+              <tr><th>PRI Type</th><td>${emitter.priType}</td></tr>
+              <tr><th>Signal Amplitude</th><td>${emitter.signalAmplitude} dBm</td></tr>
+              <tr><th>PW Values</th><td>${renderMethod(emitter.pwValues, 'µs', method)}</td></tr>
+              <tr><th>PW Type</th><td>${emitter.pwType}</td></tr>
+              <tr><th>First Seen</th><td>${new Date(emitter.firstSeen).toLocaleString('tr-TR')}</td></tr>
+              <tr><th>Last Seen</th><td>${new Date(emitter.lastSeen).toLocaleString('tr-TR')}</td></tr>
+              <tr><th>Intra-pulse Modulation</th><td>${emitter.intraPulseModulation}</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderCards(emitters) {
+        cardListEl.innerHTML = '';
+        emitters.forEach((emitter) => {
+          const card = document.createElement('article');
+          card.className = `card ${selectedEmitterId === emitter.id ? 'active' : ''}`;
+          card.innerHTML = `
+            <h3>${emitter.name}</h3>
+            <div class="card-line"><strong>Frequency Values:</strong> ${emitter.minFreq} - ${emitter.maxFreq} MHz (Center: ${emitter.centerFreq} MHz)</div>
+            <div class="card-line"><strong>Frequency Type:</strong> ${emitter.frequencyType}</div>
+            <div class="card-line"><strong>PRI Type:</strong> ${emitter.priType}</div>
+            <div class="card-line"><strong>PW Type:</strong> ${emitter.pwType}</div>
+          `;
+
+          card.addEventListener('click', () => {
+            selectedEmitterId = emitter.id;
+            renderCards(emitters);
+            renderDetails(emitter);
+          });
+
+          cardListEl.appendChild(card);
+        });
+      }
+
+      methodSelectEl.addEventListener('change', () => {
+        const selectedEmitter = emittersData.find((item) => item.id === selectedEmitterId);
+        if (selectedEmitter) {
+          renderDetails(selectedEmitter);
+        }
+      });
+
+      fetch('/api/emitters')
+        .then((response) => response.json())
+        .then((emitters) => {
+          emittersData = emitters;
+          if (!emitters.length) {
+            detailsRootEl.className = 'placeholder';
+            detailsRootEl.textContent = 'Gösterilecek emitter bulunamadı.';
+            return;
+          }
+          selectedEmitterId = emitters[0].id;
+          renderCards(emitters);
+          renderDetails(emitters[0]);
+        });
+    </script>
+  </body>
+</html>
