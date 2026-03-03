@@ -5,198 +5,488 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Emitter Dashboard</title>
     <style>
-      :root { font-family: Inter, system-ui, sans-serif; color: #e8ecff; background: #0f172a; }
+      :root { font-family: Inter, system-ui, sans-serif; font-size: 17px; color: #e8ecff; background: #0f172a; }
       * { box-sizing: border-box; }
       body { margin: 0; background: radial-gradient(circle at top, #1e293b, #0f172a 45%); }
-      .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+      .container { width: min(96vw, 1850px); max-width: 1850px; margin: 0 auto; padding: 24px; }
       .header h1 { margin: 0 0 6px; font-size: 28px; }
       .header p { margin: 0; color: #bfdbfe; }
 
-      .split-layout { margin-top: 18px; display: flex; gap: 16px; min-height: 76vh; }
-      .panel { background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 14px; }
-      .left-panel, .right-panel { flex: 1 1 50%; }
+      .split-layout { margin-top: 18px; display: grid; grid-template-columns: 1.25fr 1.75fr 0.5fr; gap: 16px; min-height: 76vh; }
+      .panel { min-width: 0; background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 14px; }
       .panel-title { margin: 0 0 12px; font-size: 18px; color: #93c5fd; letter-spacing: 0.2px; }
-      .method-select-wrap { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #bfdbfe; }
-      .method-select-wrap select { background: #0b1220; color: #e8ecff; border: 1px solid #334155; border-radius: 8px; padding: 6px 8px; }
 
-      .card-list { display: flex; flex-direction: column; gap: 12px; max-height: calc(76vh - 56px); overflow-y: auto; padding-right: 4px; }
-      .card { background: #111b34; border: 1px solid #334155; border-radius: 12px; padding: 12px; cursor: pointer; box-shadow: 0 8px 24px rgba(2, 8, 23, 0.25); }
+      .settings-panel { align-self: flex-start; font-size: 13px; }
+      .settings-panel .panel-title { font-size: 16px; margin-bottom: 10px; }
+      .method-select-wrap { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; color: #bfdbfe; }
+      .method-select-wrap select { background: #0b1220; color: #e8ecff; border: 1px solid #334155; border-radius: 8px; padding: 6px 8px; }
+      .settings-group { margin-bottom: 14px; }
+      .settings-group:last-child { margin-bottom: 0; }
+      .radio-wrap { margin-bottom: 12px; display: flex; align-items: center; gap: 12px; color: #bfdbfe; font-size: 14px; }
+      .radio-wrap label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+      .settings-panel .method-select-wrap { flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 12px; }
+      .settings-panel .method-select-wrap label { font-size: 12px; color: #93c5fd; }
+      .settings-panel .method-select-wrap select { width: 100%; min-width: 0; font-size: 12px; padding: 6px; }
+      .settings-panel .radio-wrap { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 12px; font-size: 12px; }
+      .settings-panel .radio-wrap > span { color: #93c5fd; }
+      .settings-panel .radio-wrap label { font-size: 12px; }
+
+      .card-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; max-height: 1860px; }
+      .card { height: 300px; display: flex; flex-direction: column; background: #111b34; border: 1px solid #334155; border-radius: 12px; padding: 12px; cursor: pointer; box-shadow: 0 8px 24px rgba(2, 8, 23, 0.25); overflow: hidden; }
       .card:hover { border-color: #60a5fa; }
       .card.active { border-color: #60a5fa; background: #172554; }
-      .card h3 { margin: 0 0 10px; font-size: 15px; color: #dbeafe; }
-      .card-line { font-size: 13px; color: #dbeafe; margin: 4px 0; }
+      .card h3 { margin: 0 0 8px; font-size: clamp(13px, 0.9vw, 15px); color: #dbeafe; }
+      .card-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: stretch; }
+      .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+      .card-line { font-size: clamp(11px, 0.78vw, 13px); color: #dbeafe; margin: 0; line-height: 1.25; }
+      .card-line.full { grid-column: 1 / -1; }
+      .card-image-wrap { border: 1px solid #334155; border-radius: 10px; overflow: hidden; min-height: 104px; background: #0b1220; display: flex; align-items: center; justify-content: center; }
+      .card-image { width: 100%; height: 66%; object-fit: contain; display: block; }
 
       .details-table { width: 100%; border-collapse: collapse; background: #0b1220; border-radius: 10px; overflow: hidden; }
       .details-table th, .details-table td { border-bottom: 1px solid #1f2d45; padding: 11px; text-align: left; vertical-align: top; }
       .details-table th { width: 38%; color: #93c5fd; font-weight: 600; background: #101a31; }
       .placeholder { color: #bfdbfe; background: #0b1220; border: 1px dashed #334155; border-radius: 10px; padding: 18px; }
+      .details-top { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; align-items: stretch; }
+      .details-image-wrap { border: 1px solid #334155; border-radius: 10px; background: #0b1220; padding: 8px; margin-top: 10px; }
+      .details-image { width: 100%; height: auto; max-height: 380px; object-fit: contain; display: block; }
 
       .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
       .chip { font-size: 12px; background: #1e3a8a; border: 1px solid #3b82f6; color: #dbeafe; border-radius: 999px; padding: 4px 8px; }
 
-      .micro-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .micro-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
       .micro-table th, .micro-table td { border: 1px solid #22314f; padding: 4px 6px; text-align: center; }
       .micro-table th { color: #93c5fd; }
+      .micro-table .empty { color: #475569; background: #0b1220; }
+      .micro-value { display: block; color: #e2e8f0; }
+      .micro-unit { display: block; margin-top: 2px; font-size: 10px; color: #93c5fd; }
 
-      .spark-list { display: flex; align-items: flex-end; gap: 4px; min-height: 56px; }
-      .spark-bar { width: 10px; background: linear-gradient(180deg, #60a5fa, #2563eb); border-radius: 4px 4px 0 0; position: relative; }
+      .spark-list { display: flex; align-items: flex-end; gap: 4px; min-height: 56px; overflow-x: auto; padding-top: 18px; }
+      .spark-bar { width: 10px; flex: 0 0 auto; background: linear-gradient(180deg, #60a5fa, #2563eb); border-radius: 4px 4px 0 0; position: relative; }
       .spark-bar span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #93c5fd; white-space: nowrap; }
+      .step-svg { width: 100%; height: 80px; background: #0f1b35; border: 1px solid #22314f; border-radius: 8px; }
+      .heat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); gap: 6px; }
+      .heat-cell { border-radius: 7px; text-align: center; padding: 8px 4px; font-size: 11px; color: #e2e8f0; border: 1px solid #22314f; }
+      .delta-list { display: flex; flex-direction: column; gap: 6px; }
+      .delta-item { display: flex; justify-content: space-between; align-items: center; background: #0f1b35; border: 1px solid #22314f; border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+      .delta-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; border: 1px solid #334155; color: #bfdbfe; }
+      .radial-list { display: flex; flex-wrap: wrap; gap: 8px; }
+      .radial-item { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #e2e8f0; border: 1px solid #22314f; }
+      .ladder { display: flex; flex-direction: column; gap: 5px; }
+      .ladder-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #bfdbfe; }
+      .ladder-bar { height: 10px; border-radius: 999px; background: linear-gradient(90deg, #38bdf8, #2563eb); min-width: 8px; }
+      .hist { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+      .hist-bin { background: #0f1b35; border: 1px solid #22314f; border-radius: 8px; padding: 6px 4px; text-align: center; font-size: 11px; color: #bfdbfe; }
+      .hist-count { display: block; font-size: 14px; color: #dbeafe; font-weight: 600; }
+      .hist-range { display: block; margin-top: 3px; font-size: 10px; color: #93c5fd; line-height: 1.2; }
+
+      .group-stack { display: flex; flex-direction: column; gap: 10px; }
+      .group-block { border: 1px solid #334155; border-radius: 10px; overflow: hidden; background: #0b1220; }
+      .group-header { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #101a31; color: #dbeafe; border: 0; padding: 10px 12px; cursor: pointer; font-size: 14px; text-align: left; }
+      .group-count { color: #93c5fd; font-size: 12px; }
+      .group-content { padding: 0; }
+      .group-accordion .group-header { background: #0f274f; }
+      .group-cards .group-block { box-shadow: 0 8px 20px rgba(2, 6, 23, 0.25); border-color: #1d4ed8; }
+      .group-cards .group-header { background: #1e3a8a; }
+      .group-tree .group-block { border-left: 4px solid #38bdf8; }
+      .group-tree .group-header { background: #10223f; }
+      .group-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .group-tabs .group-block { min-width: 0; }
+      .group-tabs .group-header { background: #1f2937; border-bottom: 1px solid #334155; }
+      .group-compact .group-block { border-radius: 8px; }
+      .group-compact .group-header { background: #111827; padding: 8px 10px; }
 
       @media (max-width: 980px) {
-        .split-layout { flex-direction: column; }
+        .split-layout { grid-template-columns: 1fr; }
+        .card-shell { grid-template-columns: 1fr; }
+        .card-image-wrap { min-height: 140px; }
+        .card-image { height: 100%; }
+        .card-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h1>Emitter İzleme Paneli</h1>
-        <p>Sol tarafta emitter list (card view), sağ tarafta seçilen card için emitter details gösterilir.</p>
-      </div>
+    <div id="root"></div>
 
-      <div class="split-layout">
-        <section class="panel left-panel">
-          <h2 class="panel-title">Emitter List</h2>
-          <div id="card-list" class="card-list"></div>
-        </section>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-        <section class="panel right-panel">
-          <h2 class="panel-title">Emitter Details</h2>
-          <div class="method-select-wrap">
-            <label for="view-method">PRI/PW Gösterimi:</label>
-            <select id="view-method" aria-label="Görselleştirme yöntemi">
-              <option value="yontem1" selected>yöntem1</option>
-              <option value="yontem2">yöntem2</option>
-              <option value="yontem3">yöntem3</option>
-            </select>
-          </div>
-          <div id="details-root" class="placeholder">Detayları görmek için soldan bir emitter seçin.</div>
-        </section>
-      </div>
-    </div>
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
 
-    <script>
-      const cardListEl = document.getElementById('card-list');
-      const detailsRootEl = document.getElementById('details-root');
-      const methodSelectEl = document.getElementById('view-method');
+      const viewMethods = [
+        ['chips', 'Chip/Pill List'],
+        ['micro', 'Micro Table'],
+        ['spark', 'Mini Bar/Spark'],
+        ['step', 'Step Chart (SVG)'],
+        ['heat', 'Heatmap Cells'],
+        ['delta', 'Delta Flow List'],
+        ['radial', 'Radial Badges'],
+        ['ladder', 'Ladder Scale'],
+        ['hist', 'Mini Histogram'],
+      ];
 
-      let selectedEmitterId = null;
-      let emittersData = [];
-      methodSelectEl.value = 'yontem1';
+      const groupingMethods = [
+        ['accordion', 'Classic Accordion'],
+        ['cards', 'Card Sections'],
+        ['tree', 'Tree View'],
+        ['tabs', 'Tabbed Panels'],
+        ['compact', 'Compact Collapsible'],
+      ];
 
-      function renderMethod(values, unit, method) {
+      function RenderMethod({ values, unit, method }) {
         const safeValues = Array.isArray(values) ? values : [];
-        if (!safeValues.length) {
-          return '<span style="color:#bfdbfe;">Veri yok</span>';
-        }
-        const activeMethod = ['yontem1', 'yontem2', 'yontem3'].includes(method) ? method : 'yontem1';
-        if (activeMethod === 'yontem1') {
-          return `<div class="chip-list">${safeValues.map((v) => `<span class="chip">${v} ${unit}</span>`).join('')}</div>`;
+        if (!safeValues.length) return <span style={{ color: '#bfdbfe' }}>No data</span>;
+
+        if (method === 'chips') {
+          return <div className="chip-list">{safeValues.map((v, i) => <span key={i} className="chip">{v} {unit}</span>)}</div>;
         }
 
-        if (activeMethod === 'yontem2') {
-          return `
-            <table class="micro-table">
-              <thead><tr>${safeValues.map((_, i) => `<th>#${i + 1}</th>`).join('')}</tr></thead>
-              <tbody><tr>${safeValues.map((v) => `<td>${v} ${unit}</td>`).join('')}</tr></tbody>
+        if (method === 'micro') {
+          const maxCols = 6;
+          const chunks = [];
+          for (let i = 0; i < safeValues.length; i += maxCols) chunks.push(safeValues.slice(i, i + maxCols));
+          return (
+            <table className="micro-table">
+              <tbody>
+                {chunks.map((chunk, rowIdx) => {
+                  const startIndex = rowIdx * maxCols;
+                  return (
+                    <React.Fragment key={rowIdx}>
+                      <tr>
+                        {Array.from({ length: maxCols }, (_, i) => {
+                          const idx = startIndex + i;
+                          return <th key={i} className={idx < safeValues.length ? '' : 'empty'}>{idx < safeValues.length ? `#${idx + 1}` : '-'}</th>;
+                        })}
+                      </tr>
+                      <tr>
+                        {Array.from({ length: maxCols }, (_, i) => {
+                          const value = chunk[i];
+                          return (
+                            <td key={i} className={value === undefined ? 'empty' : ''}>
+                              {value === undefined ? '-' : <><span className="micro-value">{value}</span><span className="micro-unit">{unit}</span></>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
             </table>
-          `;
+          );
         }
 
-        const min = Math.min(...safeValues);
-        const max = Math.max(...safeValues);
-        const range = max - min || 1;
-        return `
-          <div class="spark-list">
-            ${safeValues
-              .map((v) => {
-                const height = 16 + ((v - min) / range) * 48;
-                return `<div class="spark-bar" style="height:${height}px"><span>${v}</span></div>`;
-              })
-              .join('')}
-          </div>
-          <div style="margin-top:6px;font-size:11px;color:#bfdbfe;">Min: ${min} ${unit} | Max: ${max} ${unit}</div>
-        `;
-      }
+        if (method === 'spark') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const range = max - min || 1;
+          const dense = safeValues.length > 10;
+          return (
+            <>
+              <div className="spark-list">
+                {safeValues.map((v, i) => {
+                  const height = 16 + ((v - min) / range) * 48;
+                  const width = dense ? 8 : 10;
+                  return (
+                    <div key={i} className="spark-bar" style={{ height: `${height}px`, width: `${width}px` }} title={`${v} ${unit}`}>
+                      {!dense && <span>{v}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 11, color: '#bfdbfe' }}>Min: {min} {unit} | Max: {max} {unit}{dense ? ' | Hover bars for value' : ''}</div>
+            </>
+          );
+        }
 
-      function renderDetails(emitter) {
-        const method = methodSelectEl.value;
-        detailsRootEl.className = '';
-        detailsRootEl.innerHTML = `
-          <table class="details-table">
-            <tbody>
-              <tr><th>ID</th><td>${emitter.id}</td></tr>
-              <tr><th>Name</th><td>${emitter.name}</td></tr>
-              <tr><th>Min Frequency</th><td>${emitter.minFreq} MHz</td></tr>
-              <tr><th>Max Frequency</th><td>${emitter.maxFreq} MHz</td></tr>
-              <tr><th>Center Frequency</th><td>${emitter.centerFreq} MHz</td></tr>
-              <tr><th>Frequency Type</th><td>${emitter.frequencyType}</td></tr>
-              <tr><th>PRI Values</th><td>${renderMethod(emitter.priValues, 'µs', method)}</td></tr>
-              <tr><th>PRI Type</th><td>${emitter.priType}</td></tr>
-              <tr><th>Signal Amplitude</th><td>${emitter.signalAmplitude} dBm</td></tr>
-              <tr><th>PW Values</th><td>${renderMethod(emitter.pwValues, 'µs', method)}</td></tr>
-              <tr><th>PW Type</th><td>${emitter.pwType}</td></tr>
-              <tr><th>First Seen</th><td>${new Date(emitter.firstSeen).toLocaleString('tr-TR')}</td></tr>
-              <tr><th>Last Seen</th><td>${new Date(emitter.lastSeen).toLocaleString('tr-TR')}</td></tr>
-              <tr><th>Intra-pulse Modulation</th><td>${emitter.intraPulseModulation}</td></tr>
-            </tbody>
-          </table>
-        `;
-      }
+        if (method === 'step') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const range = max - min || 1;
+          const points = safeValues.map((v, i) => {
+            const x = safeValues.length === 1 ? 10 : 10 + (i * 180) / (safeValues.length - 1);
+            const y = 68 - ((v - min) / range) * 52;
+            return `${x},${y}`;
+          }).join(' ');
+          return (
+            <svg className="step-svg" viewBox="0 0 200 80" preserveAspectRatio="none" role="img" aria-label="Step chart">
+              <line x1="8" y1="68" x2="194" y2="68" stroke="#475569" strokeWidth="1" />
+              <line x1="8" y1="10" x2="8" y2="68" stroke="#475569" strokeWidth="1" />
+              <text x="10" y="10" fill="#93c5fd" fontSize="7">{max}</text>
+              <text x="10" y="76" fill="#93c5fd" fontSize="7">{min}</text>
+              <polyline fill="none" stroke="#60a5fa" strokeWidth="2" points={points} />
+              {safeValues.map((v, i) => {
+                const x = safeValues.length === 1 ? 10 : 10 + (i * 180) / (safeValues.length - 1);
+                const y = 68 - ((v - min) / range) * 52;
+                return <circle key={i} cx={x} cy={y} r="2.5" fill="#bfdbfe"><title>{v} {unit}</title></circle>;
+              })}
+            </svg>
+          );
+        }
 
-      function renderCards(emitters) {
-        cardListEl.innerHTML = '';
-        emitters.forEach((emitter) => {
-          const card = document.createElement('article');
-          card.className = `card ${selectedEmitterId === emitter.id ? 'active' : ''}`;
-          card.innerHTML = `
-            <h3>${emitter.name}</h3>
-            <div class="card-line"><strong>Frequency Values:</strong> ${emitter.minFreq} - ${emitter.maxFreq} MHz (Center: ${emitter.centerFreq} MHz)</div>
-            <div class="card-line"><strong>Frequency Type:</strong> ${emitter.frequencyType}</div>
-            <div class="card-line"><strong>PRI Type:</strong> ${emitter.priType}</div>
-            <div class="card-line"><strong>PW Type:</strong> ${emitter.pwType}</div>
-          `;
+        if (method === 'heat') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const range = max - min || 1;
+          return (
+            <div className="heat-row">
+              {safeValues.map((v, i) => {
+                const ratio = (v - min) / range;
+                const bg = `rgba(59, 130, 246, ${0.2 + ratio * 0.8})`;
+                return <div key={i} className="heat-cell" style={{ background: bg }}>{v}<br />{unit}</div>;
+              })}
+            </div>
+          );
+        }
 
-          card.addEventListener('click', () => {
-            selectedEmitterId = emitter.id;
-            renderCards(emitters);
-            renderDetails(emitter);
+        if (method === 'radial') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const range = max - min || 1;
+          return (
+            <div className="radial-list">
+              {safeValues.map((v, i) => {
+                const ratio = (v - min) / range;
+                const shade = 20 + Math.round(ratio * 50);
+                return <div key={i} className="radial-item" style={{ background: `hsl(215 80% ${shade}% / 0.8)` }}>{v}<br />{unit}</div>;
+              })}
+            </div>
+          );
+        }
+
+        if (method === 'ladder') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const range = max - min || 1;
+          return (
+            <div className="ladder">
+              {safeValues.map((v, i) => {
+                const width = 8 + ((v - min) / range) * 140;
+                return <div key={i} className="ladder-row"><span>#{i + 1}</span><div className="ladder-bar" style={{ width }}></div><span>{v} {unit}</span></div>;
+              })}
+            </div>
+          );
+        }
+
+        if (method === 'hist') {
+          const min = Math.min(...safeValues);
+          const max = Math.max(...safeValues);
+          const bins = [0, 0, 0, 0, 0];
+          const range = max - min || 1;
+          const step = range / 5;
+          safeValues.forEach((v) => {
+            const idx = Math.min(4, Math.floor(((v - min) / range) * 5));
+            bins[idx] += 1;
           });
+          return (
+            <div className="hist">
+              {bins.map((count, i) => {
+                const start = min + step * i;
+                const end = i === 4 ? max : min + step * (i + 1);
+                return (
+                  <div key={i} className="hist-bin">B{i + 1}<span className="hist-count">{count}</span><span className="hist-range">{start.toFixed(1)}-{end.toFixed(1)} {unit}</span></div>
+                );
+              })}
+            </div>
+          );
+        }
 
-          cardListEl.appendChild(card);
-        });
+        const deltas = safeValues.map((v, i) => (i === 0 ? 0 : v - safeValues[i - 1]));
+        const min = Math.min(...safeValues);
+        return (
+          <>
+            <div className="delta-list">
+              {safeValues.map((v, i) => {
+                const delta = deltas[i];
+                const deltaText = i === 0 ? 'Base' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`;
+                const badgeColor = i === 0 ? '#334155' : delta >= 0 ? '#1d4ed8' : '#7f1d1d';
+                return (
+                  <div key={i} className="delta-item">
+                    <span>#{i + 1}: {v} {unit}</span>
+                    <span className="delta-badge" style={{ background: badgeColor }}>{deltaText}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 11, color: '#bfdbfe' }}>Base: {min} {unit}</div>
+          </>
+        );
       }
 
-      methodSelectEl.addEventListener('change', () => {
-        const selectedEmitter = emittersData.find((item) => item.id === selectedEmitterId);
-        if (selectedEmitter) {
-          renderDetails(selectedEmitter);
-        }
-      });
+      function App() {
+        const [emitters, setEmitters] = useState([]);
+        const [error, setError] = useState('');
+        const [selectedId, setSelectedId] = useState(null);
+        const [viewMethod, setViewMethod] = useState('chips');
+        const [groupingMethod, setGroupingMethod] = useState('accordion');
+        const [groupMode, setGroupMode] = useState('expanded');
+        const [groupState, setGroupState] = useState({ administrative: true, technical: true });
 
-      fetch('/api/emitters')
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`API Hatası: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((emitters) => {
-          emittersData = Array.isArray(emitters) ? emitters : [];
-          if (!emittersData.length) {
-            detailsRootEl.className = 'placeholder';
-            detailsRootEl.textContent = 'Gösterilecek emitter bulunamadı.';
-            return;
-          }
-          selectedEmitterId = emittersData[0].id;
-          renderCards(emittersData);
-          renderDetails(emittersData[0]);
-        })
-        .catch((error) => {
-          detailsRootEl.className = 'placeholder';
-          detailsRootEl.textContent = `Veri yüklenemedi: ${error.message}`;
-          cardListEl.innerHTML = '';
-        });
+        const selectedEmitter = useMemo(() => emitters.find((x) => x.id === selectedId) || null, [emitters, selectedId]);
+
+        useEffect(() => {
+          fetch('/api/emitters')
+            .then((response) => {
+              if (!response.ok) throw new Error(`API Error: ${response.status}`);
+              return response.json();
+            })
+            .then((data) => {
+              const list = Array.isArray(data) ? data : [];
+              setEmitters(list);
+              if (list.length) setSelectedId(list[0].id);
+            })
+            .catch((e) => setError(e.message));
+        }, []);
+
+        useEffect(() => {
+          if (groupMode === 'expanded') setGroupState({ administrative: true, technical: true });
+          else if (groupMode === 'collapsed') setGroupState({ administrative: false, technical: false });
+          else setGroupState({ administrative: true, technical: false });
+        }, [groupMode]);
+
+        function toggleGroup(key) {
+          setGroupState((prev) => {
+            if (groupMode === 'tabbed') return { administrative: key === 'administrative', technical: key === 'technical' };
+            return { ...prev, [key]: !prev[key] };
+          });
+        }
+
+        function renderGroupBlock(key, title, rows) {
+          const isOpen = !!groupState[key];
+          return (
+            <section className="group-block" key={key}>
+              <button className="group-header" type="button" onClick={() => toggleGroup(key)}>
+                <span>{isOpen ? '▾' : '▸'} {title}</span>
+                <span className="group-count">{rows.length} fields</span>
+              </button>
+              {isOpen && <div className="group-content"><table className="details-table"><tbody>{rows.map(([label, value]) => <tr key={label}><th>{label}</th><td>{value}</td></tr>)}</tbody></table></div>}
+            </section>
+          );
+        }
+
+        return (
+          <div className="container">
+            <div className="header">
+              <h1>Emitter Izleme Paneli</h1>
+              <p>Sol tarafta emitter list, ortada emitter details, sagda view settings gosterilir.</p>
+            </div>
+
+            <div className="split-layout">
+              <section className="panel left-panel">
+                <h2 className="panel-title">Emitter List</h2>
+                {error ? <div className="placeholder">Data could not be loaded: {error}</div> : (
+                  <div className="card-list">
+                    {emitters.map((emitter) => (
+                      <article key={emitter.id} className={`card ${selectedId === emitter.id ? 'active' : ''}`} onClick={() => setSelectedId(emitter.id)}>
+                        <h3>{emitter.name}</h3>
+                        <div className="card-shell">
+                          <div className="card-grid">
+                            <div className="card-line full"><strong>Frequency Values:</strong> {emitter.minFreq} - {emitter.maxFreq} MHz (Center: {emitter.centerFreq} MHz)</div>
+                            <div className="card-line"><strong>TX Power:</strong> {emitter.txPowerWatts} W</div>
+                            <div className="card-line"><strong>Antenna Type:</strong> {emitter.antennaType}</div>
+                            <div className="card-line"><strong>PW Type:</strong> {emitter.pwType}</div>
+                            <div className="card-line"><strong>Classification:</strong> {emitter.classification}</div>
+                            <div className="card-line"><strong>PRI Type:</strong> {emitter.priType}</div>
+                            <div className="card-line"><strong>Country:</strong> {emitter.country}</div>
+                          </div>
+                          <div className="card-image-wrap">
+                            <img className="card-image" src={emitter.emitter_image} alt={emitter.name} loading="lazy" onError={(e) => { e.currentTarget.style.opacity = '0.25'; }} />
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="panel middle-panel">
+                <h2 className="panel-title">Emitter Details</h2>
+                {!selectedEmitter ? <div className="placeholder">Select an emitter from the left list.</div> : (
+                  <>
+                    <div className="details-top">
+                      <table className="details-table">
+                        <tbody>
+                          <tr><th>ID</th><td>{selectedEmitter.id}</td></tr>
+                          <tr><th>Emitter</th><td>{selectedEmitter.name}</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className={`group-stack group-${groupingMethod}`}>
+                      {renderGroupBlock('administrative', 'Administrative', [
+                        ['Country', selectedEmitter.country],
+                        ['Classification', selectedEmitter.classification],
+                        ['Operator Unit', selectedEmitter.operatorUnit],
+                        ['Platform', selectedEmitter.platform],
+                        ['Mission Area', selectedEmitter.missionArea],
+                      ])}
+
+                      {renderGroupBlock('technical', 'Technical', [
+                        ['Min Frequency', `${selectedEmitter.minFreq} MHz`],
+                        ['Max Frequency', `${selectedEmitter.maxFreq} MHz`],
+                        ['Center Frequency', `${selectedEmitter.centerFreq} MHz`],
+                        ['Frequency Type', selectedEmitter.frequencyType],
+                        ['PRI Values', <RenderMethod values={selectedEmitter.priValues} unit="µs" method={viewMethod} />],
+                        ['PRI Type', selectedEmitter.priType],
+                        ['Signal Amplitude', `${selectedEmitter.signalAmplitude} dBm`],
+                        ['PW Values', <RenderMethod values={selectedEmitter.pwValues} unit="µs" method={viewMethod} />],
+                        ['PW Type', selectedEmitter.pwType],
+                        ['First Seen', new Date(selectedEmitter.firstSeen).toLocaleString('tr-TR')],
+                        ['Last Seen', new Date(selectedEmitter.lastSeen).toLocaleString('tr-TR')],
+                        ['Intra-pulse Modulation', selectedEmitter.intraPulseModulation],
+                        ['Antenna Type', selectedEmitter.antennaType],
+                        ['Antenna Height', `${selectedEmitter.antennaHeightM} m`],
+                        ['Antenna Gain', `${selectedEmitter.antennaGainDbi} dBi`],
+                        ['Antenna Polarization', selectedEmitter.antennaPolarization],
+                        ['Antenna Azimuth', `${selectedEmitter.antennaAzimuthDeg}°`],
+                        ['Antenna Elevation', `${selectedEmitter.antennaElevationDeg}°`],
+                        ['Beamwidth', `${selectedEmitter.beamwidthDeg}°`],
+                        ['Bandwidth', `${selectedEmitter.bandwidthMHz} MHz`],
+                        ['TX Power', `${selectedEmitter.txPowerWatts} W`],
+                        ['Receiver Sensitivity', `${selectedEmitter.receiverSensitivityDbm} dBm`],
+                        ['Emitter Image', <a href={selectedEmitter.emitter_image} target="_blank" rel="noopener noreferrer">Open source image</a>],
+                      ])}
+                    </div>
+
+                    <div className="details-image-wrap">
+                      <img className="details-image" src={selectedEmitter.emitter_image} alt={selectedEmitter.name} loading="lazy" onError={(e) => { e.currentTarget.style.opacity = '0.25'; }} />
+                    </div>
+                  </>
+                )}
+              </section>
+
+              <section className="panel right-panel settings-panel">
+                <h2 className="panel-title">View Settings</h2>
+
+                <div className="settings-group method-select-wrap">
+                  <label htmlFor="grouping-method">Grouping:</label>
+                  <select id="grouping-method" value={groupingMethod} onChange={(e) => setGroupingMethod(e.target.value)}>
+                    {groupingMethods.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </div>
+
+                <div className="settings-group radio-wrap">
+                  <span>Grouping Style:</span>
+                  <label><input type="radio" name="group-default" value="expanded" checked={groupMode === 'expanded'} onChange={(e) => setGroupMode(e.target.value)} /> Expanded</label>
+                  <label><input type="radio" name="group-default" value="collapsed" checked={groupMode === 'collapsed'} onChange={(e) => setGroupMode(e.target.value)} /> Collapsed</label>
+                  <label><input type="radio" name="group-default" value="tabbed" checked={groupMode === 'tabbed'} onChange={(e) => setGroupMode(e.target.value)} /> Tabbed</label>
+                </div>
+
+                <div className="settings-group method-select-wrap">
+                  <label htmlFor="view-method">PRI/PW List View:</label>
+                  <select id="view-method" value={viewMethod} onChange={(e) => setViewMethod(e.target.value)}>
+                    {viewMethods.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </div>
+              </section>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
   </body>
 </html>
